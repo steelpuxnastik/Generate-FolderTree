@@ -87,7 +87,7 @@ function DoScan($rp, $md, $ih, $ha, $hlm) {
         $p['Recurse'] = $true
         if ($md -gt 0) { $p['Depth'] = $md - 1 }
     }
-    $items = Get-ChildItem @p
+    $items = Get-ChildItem @p | Where-Object { -not ($_.Attributes -band [System.IO.FileAttributes]::ReparsePoint) }
     foreach ($it in ($items | Where-Object { -not $_.PSIsContainer })) {
         $rel = $it.FullName.Substring($rp.Length).TrimStart('\','/') -replace '/','\'
         $sz = $it.Length
@@ -254,6 +254,9 @@ function BuildHTML($meta, $states, $stats, $scriptPath, $outFile) {
     $treeJson = "{}"
 	$dataJsName = [IO.Path]::GetFileNameWithoutExtension($outFile) + ".data.js"
     $dataJsPath = [IO.Path]::Combine([IO.Path]::GetDirectoryName($outFile), $dataJsName)
+    if (Test-Path -LiteralPath $dataJsPath) {
+        Copy-Item -LiteralPath $dataJsPath -Destination ($dataJsPath + ".bak") -Force
+    }
     $dataJsContent = "var TREE_DATA = " + ($jsData | ConvertTo-Json -Depth 10) + ";"
     [IO.File]::WriteAllText($dataJsPath, $dataJsContent, [Text.Encoding]::UTF8)
     $dataJsNameEsc = E $dataJsName
